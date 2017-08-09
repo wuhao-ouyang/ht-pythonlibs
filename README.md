@@ -1,1 +1,1 @@
-# Some useful python scripts for analyze
+# Python scripts for HT analytics
