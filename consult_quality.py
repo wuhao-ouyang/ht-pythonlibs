@@ -4,9 +4,9 @@ from datetime import datetime, date, time, timedelta
 def get_recent_sessions(hours=1, session_id=0):
 	api = graylog.GraylogSearcher()
 	if session_id == 0:
-		sessions = api.relative_search(hours*3600, 'message:"end_session" AND (source:staging_chat)') 
+		sessions = api.relative_search(hours*3600, 'message:"end_session" AND (source:staging_chat)')
 	else:
-		sessions = api.relative_search(hours*3600, 'message:"end_session" AND message:"session_id={session_id}" AND (source:staging_chat)'.format(session_id=session_id)) 
+		sessions = api.relative_search(hours*3600, 'message:"end_session" AND message:"session_id={session_id}" AND (source:staging_chat)'.format(session_id=session_id))
 	sessions = sorted(sessions, key=lambda k : k['timestamp'])
 	sessions_set = set()
 	session_ts = list()
@@ -27,7 +27,7 @@ def get_session(from_ts, to_ts, session_id=0):
 	session_filter = ''
 	if (session_id != 0):
 		session_filter = 'AND message:"session_id={session_id}"'.format(session_id=session_id)
-	sessions = api.absolute_search(from_ts, to_ts, 'message:"end_session" {session_filter} AND (source:staging_chat)'.format(session_filter=session_filter)) 
+	sessions = api.absolute_search(from_ts, to_ts, 'message:"end_session" {session_filter} AND (source:staging_chat)'.format(session_filter=session_filter))
 	sessions = sorted(sessions, key=lambda k : k['timestamp'])
 	sessions_set = set()
 	session_ts = list()
@@ -55,7 +55,7 @@ def analyze_session(end_ts, session_id, patient_id, doctor_id, print_log=False):
 	end_ts = end_ts + timedelta(minutes=5)
 	search_string = 'message:"session_id={session_id}" OR message:"person_id={patient_id}" OR message:"person_id={doctor_id}"'\
 								.format(session_id=session_id, patient_id=patient_id, doctor_id=doctor_id)
-	events = api.absolute_search(start_ts,end_ts, search_string) 
+	events = api.absolute_search(start_ts,end_ts, search_string)
 	events = sorted(events, key=lambda k : k['timestamp'])
 	session_info = dict()
 	session_info['patient_id'] = patient_id
@@ -132,14 +132,59 @@ def print_mapping(params):
 		tmp.append('{key}={value}'.format(key=key, value=value_str))
 	return ', '.join(tmp)
 
-sessions = get_session(datetime(2016, 2, 11), datetime(2016, 2, 13))
-for session in sessions:
-	# Specify session id to filter results
-	# if session[1] == '62409':
-	# if session[2] != '36409856' and session[2] != '36409856':
-	if session[1] != '75161':
-		continue
-	print session[1]
-	analyze_session(session[0], session[1], session[2], session[3], True)
+def get_long_notify_sessions(days=7):
+	api = graylog.GraylogSearcher()
+	sessions = api.relative_search(days*24*3600, '"event=notify_long_wait_patients" AND "source=handle_start_video"')
+	sessions = sorted(sessions, key=lambda k : k['timestamp'])
+	sessions_set = set()
+	for session in sessions:
+		sessions_set.add(session['session_id'])
+	return sessions_set
 
-		
+def get_session_duration(session_id):
+	api = graylog.GraylogSearcher()
+	events = api.relative_search(30*24*3600, '"session_id={session_id}"'.format(session_id=session_id))
+	events = sorted(events, key=lambda k : k['timestamp'])
+	result = dict()
+	result['participants'] = set()
+	for event in events:
+		if 'message_type=start_video' in event.get('raw_message'):
+			result['start_time'] = event['timestamp']
+		if 'message_type=end_session' in event.get('raw_message'):
+			result['end_time'] = event['timestamp']
+		if event.has_key('person_id'):
+			person_id = event.get('person_id')
+			if person_id and person_id != '0':
+				result['participants'].add(event.get('person_id'))
+	return result
+
+print 'Please enter session_id:'
+session_id = input()
+session_info = get_session_duration(session_id)
+persons_query = list()
+print "Start time:"
+print session_info['start_time'].strftime("%Y/%m/%d %H:%M:%S")
+print "End time:"
+print session_info['end_time'].strftime("%Y/%m/%d %H:%M:%S")
+for person in session_info['participants']:
+	persons_query.append('"person_id={id}"'.format(id=person))
+
+api = graylog.GraylogSearcher()
+events = api.absolute_search(session_info['start_time'], session_info['end_time'], '(' + " OR ".join(persons_query) + ') AND NOT "message_received"')
+for event in events:
+	if 'event_category=chat' in event['raw_message'] or 'event_category=mqtt' in event['raw_message'] or 'event_category=general' in event['raw_message']:
+		print event['raw_message'].replace('"', '')
+		# print "person_id={person}, event_name={event_name}".format(person=event['person_id'],event_name=event['event_name'])
+
+
+# sessions = get_session(datetime(2016, 2, 11), datetime(2016, 2, 13))
+# for session in sessions:
+# 	# Specify session id to filter results
+# 	# if session[1] == '62409':
+# 	# if session[2] != '36409856' and session[2] != '36409856':
+# 	if session[1] != '75161':
+# 		continue
+# 	print session[1]
+# 	analyze_session(session[0], session[1], session[2], session[3], True)
+
+#
