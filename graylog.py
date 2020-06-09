@@ -21,7 +21,7 @@ class GraylogSearcher:
 		self.password = password
 
 	def relative_search(self, duration, search_string):
-		params = {'fields':'source,message', 'range':str(duration), 'query':search_string}
+		params = {'filter':'streams:000000000000000000000001', 'fields':'source,message', 'range':str(duration), 'query':search_string}
 		events = self.__internalsearch(BASEURL + '/relative/export?' + urllib.urlencode(params))
 		events = sorted(events, key=lambda k : k['timestamp'], reverse=True)
 		return events
@@ -30,7 +30,7 @@ class GraylogSearcher:
 		date_format = '%Y-%m-%dT%H:%M:%S.%fZ'
 		# from_ts = from_ts.astimezone(tz.tzutc())
 		# to_ts = to_ts.astimezone(tz.tzutc())
-		params = {'fields':'source,message', 'from':from_ts.strftime(date_format), 'to':to_ts.strftime(date_format), 'query':search_string}
+		params = {'filter':'streams:000000000000000000000001', 'fields':'source,message', 'from':from_ts.strftime(date_format), 'to':to_ts.strftime(date_format), 'query':search_string}
 		events = self.__internalsearch(BASEURL + '/absolute/export?' + urllib.urlencode(params))
 		events = sorted(events, key=lambda k : k['timestamp'], reverse=False)
 		return events
@@ -85,7 +85,9 @@ def parse_event(line):
 	# 		value = re.sub('[^0-9]', '', value)
 	# 	events[key] = value
 	if 'HTCloud_analytics_v2_1' in colums[1]:
-		values = colums[2].replace('[', ', ').replace(']', '').split(', ')
+		p = re.compile(r"[A-Za-z0-9_]+=[^ \t\r\n\v\f\],]*")
+		values = p.findall(colums[2])
+		#values = colums[2].replace('[', ', ').replace(']', '').split(', ')
 	else:
 		values = colums[2].replace('"', '').split(' ')
 	if 'unified_logging' in colums[1]:

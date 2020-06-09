@@ -154,7 +154,7 @@ def get_session_duration(session_id):
 			result['end_time'] = event['timestamp']
 		if event.has_key('person_id'):
 			person_id = event.get('person_id')
-			if person_id and person_id != '0':
+			if person_id and person_id != '0' and ('message_type=chat' in event.get('raw_message')):
 				result['participants'].add(event.get('person_id'))
 	return result
 
@@ -172,9 +172,10 @@ for person in session_info['participants']:
 api = graylog.GraylogSearcher()
 events = api.absolute_search(session_info['start_time'], session_info['end_time'], '(' + " OR ".join(persons_query) + ') AND NOT "message_received"')
 for event in events:
-	if 'event_category=chat' in event['raw_message'] or 'event_category=mqtt' in event['raw_message'] or 'event_category=general' in event['raw_message']:
-		print event['raw_message'].replace('"', '')
-		# print "person_id={person}, event_name={event_name}".format(person=event['person_id'],event_name=event['event_name'])
+	if 'event_category=' in event['raw_message']:
+		print datetime.fromtimestamp(float(event['ts'])), event['person_id'], event['event_category'], event['event_name']
+	# else:
+	# 	print event['raw_message']
 
 
 # sessions = get_session(datetime(2016, 2, 11), datetime(2016, 2, 13))
