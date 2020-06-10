@@ -158,24 +158,30 @@ def get_session_duration(session_id):
 				result['participants'].add(event.get('person_id'))
 	return result
 
-print 'Please enter session_id:'
-session_id = input()
-session_info = get_session_duration(session_id)
-persons_query = list()
-print "Start time:"
-print session_info['start_time'].strftime("%Y/%m/%d %H:%M:%S")
-print "End time:"
-print session_info['end_time'].strftime("%Y/%m/%d %H:%M:%S")
-for person in session_info['participants']:
-	persons_query.append('"person_id={id}"'.format(id=person))
+def search_consult_events():
+	print 'Please enter session_id:'
+	session_id = input()
+	session_info = get_session_duration(session_id)
+	persons_query = list()
+	if not session_info.has_key('start_time'):
+		print "Cannot find session events."
+		return
+	print "Start time:"
+	print session_info['start_time'].strftime("%Y/%m/%d %H:%M:%S")
+	print "End time:"
+	print session_info['end_time'].strftime("%Y/%m/%d %H:%M:%S")
+	for person in session_info['participants']:
+		persons_query.append('"person_id={id}"'.format(id=person))
 
-api = graylog.GraylogSearcher()
-events = api.absolute_search(session_info['start_time'], session_info['end_time'], '(' + " OR ".join(persons_query) + ') AND NOT "message_received"')
-for event in events:
-	if 'event_category=' in event['raw_message']:
-		print datetime.fromtimestamp(float(event['ts'])), event['person_id'], event['event_category'], event['event_name']
-	# else:
-	# 	print event['raw_message']
+	api = graylog.GraylogSearcher()
+	events = api.absolute_search(session_info['start_time'], session_info['end_time'], '(' + " OR ".join(persons_query) + ') AND NOT "message_received"')
+	for event in events:
+		if 'event_category=' in event['raw_message']:
+			print datetime.fromtimestamp(float(event['ts'])), event['person_id'], event['event_category'], event['event_name']
+		# else:
+		# 	print event['raw_message']
+
+search_consult_events()
 
 
 # sessions = get_session(datetime(2016, 2, 11), datetime(2016, 2, 13))
