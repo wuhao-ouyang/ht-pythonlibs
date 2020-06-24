@@ -175,7 +175,7 @@ def search_consult_events():
 		persons_query.append('"person_id={id}"'.format(id=person))
 
 	api = graylog.GraylogSearcher()
-	events = api.absolute_search(session_info['start_time'], session_info['end_time'], '(' + " OR ".join(persons_query) + ') AND NOT "message_received"')
+	events = api.absolute_search(session_info['start_time'] - timedelta(minutes=5), session_info['end_time'] + timedelta(minutes=5), '(' + " OR ".join(persons_query) + ') AND NOT "message_received"')
 	utc = pytz.timezone('UTC')
 	local = pytz.timezone('America/Los_Angeles')
 	for event in events:
