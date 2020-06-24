@@ -1,5 +1,6 @@
 import graylog
 from datetime import datetime, date, time, timedelta
+import pytz
 
 def get_recent_sessions(hours=1, session_id=0):
 	api = graylog.GraylogSearcher()
@@ -175,9 +176,10 @@ def search_consult_events():
 
 	api = graylog.GraylogSearcher()
 	events = api.absolute_search(session_info['start_time'], session_info['end_time'], '(' + " OR ".join(persons_query) + ') AND NOT "message_received"')
+	tz = pytz.timezone('America/Los_Angeles')
 	for event in events:
 		if 'event_category=' in event['raw_message']:
-			print datetime.fromtimestamp(float(event['ts'])), event['person_id'], event['event_category'], event['event_name']
+			print event['timestamp'].now(tz).strftime("%Y/%m/%d %H:%M:%S"), event['person_id'], event['event_category'], event['event_name']
 		# else:
 		# 	print event['raw_message']
 
