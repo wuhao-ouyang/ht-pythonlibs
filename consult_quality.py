@@ -175,12 +175,12 @@ def search_consult_events():
 		persons_query.append('"person_id={id}"'.format(id=person))
 
 	api = graylog.GraylogSearcher()
-	events = api.absolute_search(session_info['start_time'] - timedelta(minutes=5), session_info['end_time'] + timedelta(minutes=5), '(' + " OR ".join(persons_query) + ') AND NOT "message_received"')
+	events = api.absolute_search(session_info['start_time'] - timedelta(minutes=5), session_info['end_time'] + timedelta(minutes=5), '(' + " OR ".join(persons_query) + ')')
 	utc = pytz.timezone('UTC')
 	local = pytz.timezone('America/Los_Angeles')
 	for event in events:
-		if 'event_category=' in event['raw_message']:
-			print event['timestamp'].replace(tzinfo=utc).astimezone(local).strftime("%Y/%m/%d %H:%M:%S"), event['person_id'], event['event_category'], event['event_name']
+		if ('event_category=' in event['raw_message']) or ('permission' in event['raw_message']):
+			print event['timestamp'].replace(tzinfo=utc).astimezone(local).strftime("%Y/%m/%d %H:%M:%S"), event.get('person_id', ''), event.get('event_category', ''), event.get('event_name', ''), event.get('value', ''), event.get('message', '')
 		# else:
 		# 	print event['raw_message']
 

@@ -94,10 +94,11 @@ def parse_event(line):
 		pairs = list()
 		tmp = list()
 		for pair in values:
-			tmp.append(pair)
-			if '=' in pair:
+			if '=' in pair and len(tmp) > 1:
 				pairs.append(' '.join(tmp))
 				tmp = list()
+			else:
+				tmp.append(pair)
 	else:
 		pairs = values
 
@@ -114,5 +115,6 @@ def parse_event(line):
 			continue
 	dt = datetime.strptime(colums[0].replace('"', ''), '%Y-%m-%dT%H:%M:%S.%fZ')
 	events['timestamp'] = dt
+	events['source'] = colums[1]
 	events['raw_message'] = colums[2]
 	return events
