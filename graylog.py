@@ -77,6 +77,7 @@ def parse_event(line):
 		return
 	elif len(colums) > 3:
 		colums[2] = ','.join(colums[2::])
+	colums[2] = colums[2][1:-1]
 	events = dict()
 	# for m in re.finditer('([a-z_]+)=([^=]*?)\s|$', colums[2].replace('"', '')):
 	# 	key = m.group(1)
@@ -87,31 +88,32 @@ def parse_event(line):
 	if 'HTCloud_analytics_v2_1' in colums[1]:
 		p = re.compile(r"[A-Za-z0-9_]+=[^ \t\r\n\v\f\],]*")
 		values = p.findall(colums[2])
+		# print values
 		#values = colums[2].replace('[', ', ').replace(']', '').split(', ')
 	else:
-		values = colums[2].replace('"', '').split(' ')
+		p = re.compile(r"[A-Za-z0-9_]+=")
+		keys = p.findall(colums[2])
+		values = p.split(colums[2])[1:]
+		for i in range(len(keys)):
+			values[i] = keys[i] + values[i][:-1]
 	if 'unified_logging' in colums[1]:
-		pairs = list()
-		tmp = list()
-		for pair in values:
-			if '=' in pair and len(tmp) > 1:
-				pairs.append(' '.join(tmp))
-				tmp = list()
-			else:
-				tmp.append(pair)
+		# print line
+		# print colums[2]
+		pairs = values
 	else:
 		pairs = values
 
 	for pair in pairs:
 		try:
-			pair = pair.replace('"', '')
-			index = pair.index('=')
-			key = pair[:index]
-			value = pair[index+1:].replace('\n', '')
-			if key and key in ('person_id', 'session_id'):
-				value = re.sub('[^0-9]', '', value)
-			events[key] = value
+			pair = pair.replace('""', '')
+			key = pair.split('=')[0]
+			value = pair.split('=')[1]
+			if events.has_key(key) and events.get(key, '') != '':
+				next
+			else:
+				events[key] = value
 		except ValueError, e:
+			print e
 			continue
 	dt = datetime.strptime(colums[0].replace('"', ''), '%Y-%m-%dT%H:%M:%S.%fZ')
 	events['timestamp'] = dt

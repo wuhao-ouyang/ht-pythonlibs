@@ -27,7 +27,7 @@ def get_session(from_ts, to_ts, session_id=0):
 	api = graylog.GraylogSearcher()
 	session_filter = ''
 	if (session_id != 0):
-		session_filter = 'AND message:"session_id={session_id}"'.format(session_id=session_id)
+		session_filter = 'AND message:"{session_id}"'.format(session_id=session_id)
 	sessions = api.absolute_search(from_ts, to_ts, 'message:"end_session" {session_filter} AND (source:staging_chat)'.format(session_filter=session_filter))
 	sessions = sorted(sessions, key=lambda k : k['timestamp'])
 	sessions_set = set()
@@ -144,7 +144,7 @@ def get_long_notify_sessions(days=7):
 
 def get_session_duration(session_id):
 	api = graylog.GraylogSearcher()
-	events = api.relative_search(30*24*3600, '"session_id={session_id}"'.format(session_id=session_id))
+	events = api.relative_search(0, '"session_id={session_id}"'.format(session_id=session_id))
 	events = sorted(events, key=lambda k : k['timestamp'])
 	result = dict()
 	result['participants'] = set()
@@ -179,10 +179,12 @@ def search_consult_events():
 	utc = pytz.timezone('UTC')
 	local = pytz.timezone('America/Los_Angeles')
 	for event in events:
-		if ('event_category=' in event['raw_message']) or ('permission' in event['raw_message']):
+		if ('event_category=' in event['raw_message']):
 			print event['timestamp'].replace(tzinfo=utc).astimezone(local).strftime("%Y/%m/%d %H:%M:%S"), event.get('person_id', ''), event.get('event_category', ''), event.get('event_name', ''), event.get('value', ''), event.get('message', '')
-		# else:
-		# 	print event['raw_message']
+		elif ('permission' in event['raw_message']) or ('quality' in event['raw_message'] and 'ht_chat_all_stats' not in event['action']):
+			# print event
+			print event['timestamp'].replace(tzinfo=utc).astimezone(local).strftime("%Y/%m/%d %H:%M:%S"), event.get('person_id', ''), event.get('action', ''), event.get('message', '')
+
 
 search_consult_events()
 
